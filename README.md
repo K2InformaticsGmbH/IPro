@@ -1,7 +1,7 @@
-ipro
+IPro : IPro Intranet Communication Test Tool
 =====
 
-An OTP application
+Record network status info on erlang cluster failure
 
 Build
 -----
