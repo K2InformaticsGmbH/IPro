@@ -17,3 +17,6 @@ _build
 *.iml
 rebar3.crashdump
 rebar.lock
+nssm_script/.config.erl
+nssm_script/nssm-*/
+vim*.conf
