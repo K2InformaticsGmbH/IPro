@@ -11,8 +11,8 @@ unamestr=`uname`
 if [[ "$unamestr" == 'Linux' || "$unamestr" == 'Darwin' ]]; then
      exename=erl
 else
-    #exename='start //MAX werl.exe'
-    exename='erl.exe'
+    exename='start //MAX werl.exe'
+    #exename='erl.exe'
 fi
 
 # PATHS
@@ -42,6 +42,4 @@ echo "SASL      : $sasl_opts"
 echo "------------------------------------------"
 
 # Starting ipro
-export ERL_EPMD_PORT=7999
-#export ERL_EPMD_ADDRESS=127.0.0.1
 $exename $start_opts -s ipro

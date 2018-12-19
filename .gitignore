@@ -20,3 +20,5 @@ rebar.lock
 nssm_script/.config.erl
 nssm_script/nssm-*/
 vim*.conf
+*.debug
+*.log

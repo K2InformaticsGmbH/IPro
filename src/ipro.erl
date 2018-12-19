@@ -31,70 +31,49 @@
 %%====================================================================
 %% application API
 %%====================================================================
-start() -> application:ensure_all_started(?MODULE).
+start() ->
+    application:ensure_all_started(?MODULE).
 stop() -> application:stop(?MODULE).
 
 %%====================================================================
 %% application callbacks
 %%====================================================================
 start(_StartType, _StartArgs) ->
-    ErtsBinPath = os:getenv("ERTS_BIN"),
-    if ErtsBinPath == false ->
-            error(
-                "ERTS_BIN environment variable MUST be defined and point to "
-                "erts-X.Y/bin folder (which contains epmd.exe)"
-            );
-        true -> ok
-    end,
-    EpmdExe = os:find_executable("epmd", ErtsBinPath),
-    if EpmdExe == false -> error({ErtsBinPath, "doesn't have epmd.exe"});
-        true -> ok
-    end,
-    supervisor:start_link(
-        {local, ipro_sup}, ?MODULE, {EpmdExe, "127.0.0.1", "7999"}
-    ).
+    supervisor:start_link({local, ipro_sup}, ?MODULE, {}).
 
 stop(_State) -> ok.
 
 %%====================================================================
 %% supervisor/gen_server hybrid init
 %%====================================================================
-init({EpmdExe, Address, Port}) ->
+init({}) ->
     ?L("supervisor starting...~n"),
     {ok, {
         #{strategy => one_for_one, intensity => 5, period => 10},
         [#{id => ?MODULE,
            start => {gen_server, start_link,
                         [{local, ipro_epmd},
-                         ?MODULE,
-                         [EpmdExe, Address, Port],
+                         ?MODULE, [],
                          []]},
            restart => permanent, shutdown => 5000, type => worker,
            modules => [?MODULE]}]
     }};
-init([EpmdExe, Address, Port]) ->
-    ?L("gen_server starting with parameters:~n"
-       "    EpmdExe : ~p~n"
-       "    Address : ~p~n"
-       "    Port    : ~p~n", [EpmdExe, Address, Port]),
-    process_flag(trap_exit, true),
-    EpmdPort = open_port(
-        {spawn_executable, EpmdExe},
-        [in, {line, 80},
-         {args, ["-d", "-d", "-d", "-d", "-address", Address, "-port", Port]},
-         exit_status, stderr_to_stdout, use_stdio, {parallelism, true}]
+init([]) ->
+    ?L(
+        "gen_server starting...~n"
+        "ERLSRV_SERVICE_NAME=~s~n"
+        "ERLSRV_EXECUTABLE=~s~n"
+        "ERL_EPMD_PORT=~s~n"
+        "kernel env ~p~n"
+        "sasl env ~p~n",
+        [os:getenv("ERLSRV_SERVICE_NAME"),
+         os:getenv("ERLSRV_EXECUTABLE"),
+         os:getenv("ERL_EPMD_PORT"),
+         application:get_all_env(kernel),
+         application:get_all_env(sasl)]
     ),
-    if not is_port(EpmdPort) ->
-        {stop, {"Failed to start", EpmdExe, EpmdPort}};
-        true ->
-            true = erlang:link(EpmdPort),
-            {ok, _} = net_kernel:start(['ipro@127.0.0.1']),
-            true = erlang:set_cookie(node(), ipro),
-            ?L("~nNode    : ~p~n"
-               "Cookie  : ~p~n",
-                [node(), erlang:get_cookie()]),
-            {ok, {Port, EpmdPort, []}}
-    end.
+    process_flag(trap_exit, true),
+    {ok, undefined}.
 
 %%====================================================================
 %% gen_server callbacks
@@ -105,43 +84,12 @@ handle_call(Request, _From, State) ->
 handle_cast(Request, State) ->
     {stop, {unsupported, Request}, State}.
 
+handle_info(Info, State) ->
+    {stop, {unsupported, Info}, State}.
+
+terminate(Reason, State) ->
+    ?L("exit for : ~p~nState: ~p~n", [Reason, State]).
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
-handle_info({'EXIT', Port, Reason}, {_, Port, _} = State) ->
-    ?L("[error] ~p terminated. reason ~p~n", [Port, Reason]),
-    {stop, {'EXIT', Reason}, State};
-handle_info({Port, closed}, {_, Port, _} = State) ->
-    ?L("[error] ~p closed~n", [Port]),
-    {stop, closed, State};
-handle_info({Port, {exit_status, Status}}, {_, Port, _} = State) ->
-    if Status == 0 ->
-            ?L("~p finished successfully~n", [Port]);
-        true ->
-            ?L("[error] ~p exit with status ~p~n", [Port, Status])
-    end,
-    catch erlang:port_close(Port),
-    {stop, normal, State};
-handle_info({EpmdPort, {data, {F, Line}}}, {Port, EpmdPort, Buf}) ->
-    {noreply,
-        if F =:= eol ->
-                ?L("~s~n", [lists:reverse([Line|Buf])]),
-                {Port, EpmdPort, []};
-            true -> 
-                {Port, EpmdPort, [Line | Buf]}
-        end};
-handle_info({Port, {data, Data}}, {_, Port, _} = State) ->
-    ?L("~p~n", [Data]),
-    {noreply, State};
-handle_info({'EXIT', FromPid, Reason}, {_, Port, _} = State) ->
-    ?L("~p sent ~p, dying...~n", [FromPid, Reason]),
-    catch erlang:port_close(Port),
-    {stop, {'EXIT', Reason}, State}.
-
-terminate(Reason, {Port, EpmdPort, _} = State) ->
-    ?L("~nexit for : ~p, state : ~p~n"
-       "stopping distribution  : ~p~n"
-       "shutting down epmd     : ~p~n"
-       "killed epmd processes  : ~p~n",
-       [Reason, State, net_kernel:stop(), catch erlang:port_close(EpmdPort),
-       catch os:cmd("powershell.exe -File kill_epmd.ps1 " ++ Port)]).
