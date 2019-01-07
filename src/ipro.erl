@@ -22,7 +22,7 @@
 -define(
     L(_Format, _Args),
     io:format(
-        "[~p:~p:~p] ~p "_Format,
+        "~n[~p:~p:~p] ~p "_Format,
         [?MODULE, ?FUNCTION_NAME, ?LINE, self() | _Args]
     )
 ).
@@ -72,6 +72,7 @@ init([]) ->
          application:get_all_env(kernel),
          application:get_all_env(sasl)]
     ),
+    net_info(),
     process_flag(trap_exit, true),
     {ok, undefined}.
 
@@ -93,3 +94,13 @@ terminate(Reason, State) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+-define(D(_E),
+    ?L("--- "??_E" --->~n~p~n<--- "??_E" ---~n", [_E])
+).
+
+net_info() ->
+    ?D(application:get_all_env(ipro)),
+    ?D(inet:gethostname()),
+    ?D(inet:getifaddrs()),
+    ?D(erl_epmd:names()),
+    ?D(erl_epmd:names({127,0,0,1})).

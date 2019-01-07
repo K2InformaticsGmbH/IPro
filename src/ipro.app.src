@@ -1,16 +1,12 @@
-{application, ipro,
- [{description, "An OTP application"},
-  {vsn, "0.0.1"},
-  {registered, []},
-  {mod, { ipro, []}},
-  {applications,
-   [kernel,
-    stdlib
-   ]},
-  {env,[]},
-  {modules, []},
-
-  {maintainers, []},
-  {licenses, ["Apache 2.0"]},
-  {links, []}
- ]}.
+{application, ipro, [
+    {description, "Network / EPMD monitor and analyzer"},
+    {vsn, "0.0.1"},
+    {registered, []},
+    {mod, {ipro, []}},
+    {applications, [kernel, stdlib, sasl]},
+    {env,[{other_nodes, ['ipro1@127.0.0.1']}]},
+    {modules, []},
+    {maintainers, ['chatterjee@bluewin.ch']},
+    {licenses, ["Apache 2.0"]},
+    {links, []}
+]}.
