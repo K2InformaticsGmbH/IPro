@@ -22,3 +22,5 @@ nssm_script/nssm-*/
 vim*.conf
 *.debug
 *.log
+config/test_node?.config
+deploy/*

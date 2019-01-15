@@ -22,6 +22,7 @@ Switch ($Arg) {
 			"-stopaction", "`"init:stop().`"",
 			"-debugtype", "reuse",
 			"-env", "ERL_EPMD_PORT={{epmd_port}}",
+			"-env", "ERL_EPMD_ADDRESS={{host_address}}",
 			"-workdir", "`"$InstallRoot\log`"",
 			"-name", "{{node}}",
 			"-args", "`"$EmuArgs`""
