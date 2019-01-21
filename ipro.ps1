@@ -2,8 +2,19 @@ Param([string]$Arg="info")
 
 $InstallRoot="$PSScriptRoot\.."
 $Erts="erts-{{erts_vsn}}"
+$ErlIniPath="$InstallRoot/$Erts/bin"
+$ErlIniContent=@"
+[erlang]
+Bindir=$ErlIniPath
+Progname=erl
+Rootdir=$InstallRoot
+"@
+
 Switch ($Arg) {
 	"add" {
+		# Rewrite erts/erl.ini with installation path
+		$ErlIniContent > "$ErlIniPath/erl.ini"
+
 		$EbinPath="$InstallRoot\lib\ipro-{{release_version}}\ebin"
 		Write-Host "EbinPath 		: $EbinPath"
 		
@@ -34,16 +45,29 @@ Switch ($Arg) {
 		break
 	}
 	"console" {
+		# Rewrite erts/erl.ini with installation path
+		$ErlIniContent > "$ErlIniPath/erl.ini"
+
 		$env:ERL_EPMD_PORT = {{epmd_port}}
 		$env:ERL_EPMD_ADDRESS = "{{host_address}}"
 		& "$InstallRoot\$Erts\bin\werl.exe" `
 			-boot "$InstallRoot\releases\{{release_version}}\ipro" `
 			-config "$InstallRoot\releases\{{release_version}}\ipro.config" `
-			-name {{node}} -setcookie {{cookie}} `
+			-name {{node}} -setcookie {{cookie}}
 		break
 	}
-	"epmd" {
+	"epmd-start" {
+		& "$InstallRoot\$Erts\bin\epmd.exe" -d -d -d -d `
+			-address {{host_address}} `
+			-port {{epmd_port}}
+		break
+	}
+	"epmd-names" {
 		& "$InstallRoot\$Erts\bin\epmd.exe" -d -port {{epmd_port}} -names
+		break
+	}
+	"epmd-kill" {
+		& "$InstallRoot\$Erts\bin\epmd.exe" -d -port {{epmd_port}} -kill
 		break
 	}
 	"start" {
@@ -64,7 +88,7 @@ Switch ($Arg) {
 	}
 	default {
 		$Script= $MyInvocation.MyCommand.Name
-		Write-Host "Usage: $Script [add | remove | start | stop list | console | epmd]"
+		Write-Host "Usage: $Script [add | remove | start | stop | list | console | epmd-start | epmd-names | epmd-kill]"
 		break
 	}
 }
