@@ -21,7 +21,7 @@ Switch ($Arg) {
 		$EmuArgs=@(
 			"-emu_args",
 			"-setcookie", "{{cookie}}",
-			"-boot", "$InstallRoot\releases\{{release_version}}\ipro",
+			"-boot", "$InstallRoot\releases\{{release_version}}\start",
 			"-config", "$InstallRoot\releases\{{release_version}}\ipro.config"
 		)
 		$EmuArgs=$EmuArgs -join ' '
@@ -51,7 +51,7 @@ Switch ($Arg) {
 		$env:ERL_EPMD_PORT = {{epmd_port}}
 		$env:ERL_EPMD_ADDRESS = "{{host_address}}"
 		& "$InstallRoot\$Erts\bin\werl.exe" `
-			-boot "$InstallRoot\releases\{{release_version}}\ipro" `
+			-boot "$InstallRoot\releases\{{release_version}}\start" `
 			-config "$InstallRoot\releases\{{release_version}}\ipro.config" `
 			-name {{node}} -setcookie {{cookie}}
 		break
