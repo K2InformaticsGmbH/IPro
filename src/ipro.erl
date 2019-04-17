@@ -18,8 +18,7 @@
 %%====================================================================
 %% application API
 %%====================================================================
-start() ->
-    application:ensure_all_started(?MODULE).
+start() -> application:ensure_all_started(?MODULE).
 stop() -> application:stop(?MODULE).
 
 %%====================================================================
@@ -34,7 +33,7 @@ stop(_State) -> ok.
 %% supervisor callbacks
 %%====================================================================
 init({}) ->
-    ?L("supervisor starting...~n"),
+    lager:info("supervisor starting..."),
     {ok, {
         #{strategy => one_for_one, intensity => 5, period => 10},
         [#{id => ipro_worker,
