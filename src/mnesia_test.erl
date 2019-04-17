@@ -1,4 +1,4 @@
--module(test).
+-module(mnesia_test).
 -behavior(gen_server).
 
 -on_load(init/0).
