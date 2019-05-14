@@ -25,7 +25,7 @@ init([]) ->
 	{ok, IdleCheckPeriod} = application:get_env(idle_check_period),
 	{ok, ErrorCheckPeriod} = application:get_env(error_check_period),
 	{ok, OtherNodes} = application:get_env(other_nodes),
-    ?L(
+    lager:info(
         "~n====== [~p starting] ======~n"
         "    ERLSRV_SERVICE_NAME : ~s~n"
         "    ERLSRV_EXECUTABLE   : ~s~n"
@@ -35,7 +35,7 @@ init([]) ->
         "    OtherNodes          : ~p~n"
         "    kernel env          : ~p~n"
         "    sasl env            : ~p~n"
-		"====================================~n",
+		"====================================",
         [?MODULE, Service, Exe, EpmdPort, IdleCheckPeriod, ErrorCheckPeriod,
 		 OtherNodes, application:get_all_env(kernel),
 		 application:get_all_env(sasl)]
@@ -57,22 +57,26 @@ handle_info(timeout, #state{idle_check_period = IdleCheckPeriod,
 							other_nodes = OtherNodes} = State) ->
 	case [N || N <- OtherNodes, net_adm:ping(N) /= pong] of
 		[] ->
-			?L("all nodes ~p are reachable, next check after : ~p ms~n",
-			   [OtherNodes, IdleCheckPeriod]),
+			lager:info(
+				"all nodes ~p are reachable, next check after : ~p ms",
+			   [OtherNodes, IdleCheckPeriod]
+			),
 			{noreply, State, IdleCheckPeriod};
 		UnreachableNodes ->
-			?L("=============== analyze_report ===============~n"),
+			lager:info("=============== analyze_report ==============="),
 			analyze_report(UnreachableNodes, State),
-			?L("==============================================~n"),
-			?E("~p nodes were un-reachable, next check after : ~p ms~n",
-			   [UnreachableNodes, ErrorCheckPeriod]),
+			lager:info("=============================================="),
+			lager:error(
+				"~p nodes were un-reachable, next check after : ~p ms",
+			  	[UnreachableNodes, ErrorCheckPeriod]
+			),
 			{noreply, State, ErrorCheckPeriod}
 	end;
 handle_info(Info, State) ->
     {stop, {unsupported, Info}, State}.
 
 terminate(Reason, State) ->
-    ?L("exit for : ~p~nState: ~p~n", [Reason, State]).
+    lager:info("exit for : ~p~nState: ~p", [Reason, State]).
 
 %%====================================================================
 %% Internal functions
@@ -83,22 +87,26 @@ analyze_report([Node|UnreachableNodes], #state{epmd_port = EpmdPort} = State) ->
 	{Host, IpAddr} = split_host(Node),
 	case gen_tcp:connect(IpAddr, EpmdPort, [inet], ?TCP_CONNECT_TIMEOUT) of
 		{ok, Socket} ->
-			?L("~s (~s) epmd is reachable at port ~p~n",
-			   [Host, inet:ntoa(IpAddr), EpmdPort]),
+			lager:info(
+				"~s (~s) epmd is reachable at port ~p",
+			   	[Host, inet:ntoa(IpAddr), EpmdPort]
+			),
 			gen_tcp:close(Socket);
 		{error, Error} ->
-			?E("~s (~s) epmd is NOT reachable at port ~p, Error ~p~n",
-			   [Host, inet:ntoa(IpAddr), EpmdPort, Error])
+			lager:error(
+				"~s (~s) epmd is NOT reachable at port ~p, Error ~p",
+			   	[Host, inet:ntoa(IpAddr), EpmdPort, Error]
+			)
 	end,
 	analyze_report(UnreachableNodes, State).
 
 net_info() ->
 	{Host, IpAddr} = split_host(node()),
-	?L("FQDN host (from node) ~s (~s)~n", [Host, inet:ntoa(IpAddr)]),
+	lager:info("FQDN host (from node) ~s (~s)", [Host, inet:ntoa(IpAddr)]),
     ?D(inet:gethostname()),
     ?D(inet:getifaddrs()),
 	case erl_epmd:names() of
-		{error, Error} -> ?E("erl_epmd:names() : ~p~n", [Error]);
+		{error, Error} -> lager:error("erl_epmd:names() : ~p", [Error]);
 		_ -> ?D(erl_epmd:names())
 	end,
     ?D(erl_epmd:names(IpAddr)).

@@ -1,9 +1,9 @@
 {application, ipro, [
     {description, "Network / EPMD monitor and analyzer"},
-    {vsn, "0.0.1"},
+    {vsn, "0.0.2"},
     {registered, []},
     {mod, {ipro, []}},
-    {applications, [kernel, stdlib, sasl]},
+    {applications, [kernel, stdlib, sasl, lager]},
     {env, [{other_nodes, ['ipro1@127.0.0.1']},
            {idle_check_period, 1000},
            {error_check_period, 500}]},
